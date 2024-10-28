@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MineSweeper</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-bg: 119, 33, 138;
+            --color-fg: 255, 255, 255;
+            --color-selected: 53, 53, 53;
+            --color-mine: 126, 27, 27, 0.75;
+            --color-flag: 0, 128, 0;
+        }
+
+        body.maincontainer {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        header.scoreboard {
+            display: flex;
+            justify-content: space-around;
+            font-size: 2em;
+            font-weight: bold;
+            padding: 1em;
+            border-bottom: 5px inset black;
+        }
+
+        header.scoreboard.win {
+            background: rgba(var(--color-flag));
+        }
+
+        header.scoreboard.lose {
+            background: rgba(var(--color-mine));
+        }
+
+        section#board {
+            --num-rows: 10;
+            --num-cols: 10;
+            background: black;
+            flex-grow: 1;
+            display: grid;
+            grid-template-rows: repeat(var(--num-rows), 1fr);
+            grid-template-columns: repeat(var(--num-cols), 1fr);
+            padding: 5px;
+            padding-top: 0;
+        }
+
+        div.space {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px outset black;
+            background: rgba(var(--color-bg));
+            color: rgba(var(--color-fg));
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 2em;
+            cursor: pointer;
+        }
+
+        div.space:hover:not(.selected):not(.flag) {
+            border-width: 5px;
+            border-color: white;
+            backdrop-filter: saturate(90%);
+            -webkit-backdrop-filter: saturate(75%);
+        }
+
+        div.space.selected {
+            position: relative;
+            border-width: 1px;
+            background: rgba(var(--color-selected));
+            box-shadow: inset -10px -5px black, -6px -5px rgba(var(--color-selected), 0.75);
+            border-radius: 2px;
+            cursor: default;
+        }
+
+        div.space.selected.mine::after {
+            content: "\01F4A5";
+            font-size: 2em;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            inset: 0;
+            background: linear-gradient(45deg, rgba(var(--color-selected)) 15%, rgba(var(--color-mine)));
+            border: 3px solid rgba(var(--color-mine));
+        }
+
+        div.space.selected.flag::after {
+            content: " ";
+            font-size: 2em;
+            position: absolute;
+            inset: 100%;
+            background: rgba(var(--color-flag));
+        }
+
+        div.space.mine {
+            position: relative;
+            color: white;
+        }
+
+        div.space.mine::after {
+            content: "\01F4A5";
+            font-size: 1em;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            inset: 0;
+            background: rgba(var(--color-mine));
+        }
+
+        div.space.flag {
+            position: relative;
+            background: rgba(var(--color-flag));
+            cursor: default;
+        }
+
+        div.space.flag::after {
+            content: '\01F6A9';
+            font-size: 1em;
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(var(--color-flag));
+        }
+
+        div.space.flag.mine::after {
+            content: "\01F4A5";
+            font-size: 1em;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            inset: 0;
+            background: linear-gradient(rgba(var(--color-mine)) 50%, rgba(var(--color-flag)));
+        }
+    </style>
+</head>
+<body class="maincontainer">
+<header class="scoreboard">
+    <section id="timer">0</section>
+    <section id="name">Anonymous</section> 
+    <section id="numOpenSpaces">0</section>
+</header>
+
+<section id="board"></section>
+
+<script>
+    let board = null;
+    let gameID = null;
+    let isObserver = false;
+    let longPressTimeout = null; 
+
+    async function init() {
+        let params = new URLSearchParams(window.location.search);
+        gameID = params.get('gameid');
+        isObserver = params.get('mode') === 'observer';
+
+        const scoreURL = `/minesweeper/info?gameid=${gameID}&action=score`;
+        let scoreResponse = await fetch(scoreURL);
+        let score = await scoreResponse.json();
+        document.getElementById('numOpenSpaces').textContent = score.message;
+
+        const sizeURL = `/minesweeper/info?gameid=${gameID}&action=size`;
+        let sizeResponse = await fetch(sizeURL);
+        let sizeData = await sizeResponse.json();
+        if (sizeData.status !== 'success') {
+            alert('Failed to load game size.');
+            return;
+        }
+        let size = JSON.parse(sizeData.message); 
+        let NUM_ROWS = size[0];
+        let NUM_COLS = size[1];
+
+        const nameURL = `/minesweeper/info?gameid=${gameID}&action=name&name=${params.get('name')}`;
+        let nameResponse = await fetch(nameURL);
+        let nameData = await nameResponse.json();
+        if (nameData.status === 'success') {
+            document.getElementById('name').textContent = nameData.message;
+        } else {
+            document.getElementById('name').textContent = 'Anonymous';
+        }
+
+        board = document.getElementById('board');
+        board.style.setProperty("--num-rows", NUM_ROWS);
+        board.style.setProperty("--num-cols", NUM_COLS);
+
+        for (let r = 0; r < NUM_ROWS; r++) {
+            for (let c = 0; c < NUM_COLS; c++) {
+                let div = document.createElement('div');
+                div.classList.add('space');
+                div.setAttribute("data-row", r);
+                div.setAttribute("data-col", c);
+
+                if (!isObserver) {
+                    div.addEventListener('mousedown', handleMouseDown);
+                    div.addEventListener('mouseup', handleMouseUp);
+                    div.addEventListener('mouseleave', cancelLongPress);
+                    div.addEventListener('touchstart', handleTouchStart, {passive: true});
+                    div.addEventListener('touchend', handleTouchEnd);
+                }
+                
+                board.appendChild(div);
+            }
+        }
+
+        await fetchBoardStateAndUpdate();
+
+        const eventSource = new EventSource(`/minesweeper/events`);
+        eventSource.onmessage = function (event) {
+            const parsedData = JSON.parse(event.data);
+            if (parsedData.action === 'update' && parsedData.gameid === gameID) {
+                fetchBoardStateAndUpdate();
+            }
+        };
+
+        setInterval(function () {
+            fetch(`/minesweeper/info?gameid=${gameID}&action=time`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('timer').textContent = Math.floor(data.message / 1000);
+                    }
+                });
+        }, 1000);
+    }
+
+    async function handleMouseDown(event) {
+        longPressTimeout = setTimeout(() => handleButtonClick(event, true), 500);
+    }
+
+    async function handleMouseUp(event) {
+        if (longPressTimeout) {
+            clearTimeout(longPressTimeout); 
+            handleButtonClick(event, false); 
+        }
+    }
+
+    function cancelLongPress() {
+        if (longPressTimeout) {
+            clearTimeout(longPressTimeout);
+        }
+    }
+
+    async function handleTouchStart(event) {
+        longPressTimeout = setTimeout(() => handleButtonClick(event, true), 500);
+    }
+
+    async function handleTouchEnd(event) {
+        if (longPressTimeout) {
+            clearTimeout(longPressTimeout); 
+            handleButtonClick(event, false); 
+        }
+    }
+
+    async function handleButtonClick(event, isFlagging) {
+        const scoreURL = `/minesweeper/info?gameid=${gameID}&action=score`;
+        let scoreResponse = await fetch(scoreURL);
+        let score = await scoreResponse.json();
+        document.getElementById('numOpenSpaces').textContent = score.message;
+
+        if (gameOver()) {
+            return false;
+        }
+
+        let target = event.target || event.touches[0].target;  
+        let row = parseInt(target.getAttribute('data-row'));
+        let col = parseInt(target.getAttribute('data-col'));
+
+        makeMove(gameID, row, col, isFlagging);
+    }
+
+    async function makeMove(gameID, row, col, isFlagging) {
+        const movePayload = {
+            gameid: gameID,
+            row: row,
+            col: col,
+            flag: isFlagging,
+            observer: isObserver
+        };
+
+        try {
+            const response = await fetch('/minesweeper/move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(movePayload)
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+            } else {
+                alert(result.message);
+            }
+
+            if (result.message && typeof result.message.gameOver !== 'undefined') {
+                if (result.message.gameOver > 0) {
+                    document.getElementsByClassName('scoreboard')[0].classList.add('win');
+                    document.getElementById('name').textContent = "You Win!";
+                } else if (result.message.gameOver < 0) {
+                    document.getElementsByClassName('scoreboard')[0].classList.add('lose');
+                    document.getElementById('name').textContent = "You Lose!";
+                }
+            }
+
+        } catch (error) {
+            console.error('Error making move:', error);
+        }
+    }
+
+    async function fetchBoardStateAndUpdate() {
+        const boardStateURL = `/minesweeper/info?gameid=${gameID}&action=board`;
+        try {
+            let response = await fetch(boardStateURL);
+            let data = await response.json();
+            if (data.status === 'success') {
+                updateBoard(data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching board state:', error);
+        }
+    }
+
+    function updateBoard(boardState) {
+        const spaces = document.getElementsByClassName('space');
+        for (let space of spaces) {
+            let row = parseInt(space.getAttribute('data-row'));
+            let col = parseInt(space.getAttribute('data-col'));
+
+            let key = `(${row},${col})`;
+            let value = boardState[key];
+
+            space.classList.remove('selected', 'mine', 'flag');
+            space.textContent = '';
+
+            if (value === 'M') {
+                space.classList.add('mine');
+            } else if (value === 'F') {
+                space.classList.add('flag');
+            } else if (typeof value === 'number') {
+                space.classList.add('selected');
+                space.textContent = value > 0 ? value : '';
+            }
+
+            if (boardState.gameOver !== 0) {
+                if (value === 'M') {
+                    space.classList.add('mine');
+                }
+            }
+        }
+
+        if (boardState.score !== undefined) {
+            document.getElementById('numOpenSpaces').textContent = boardState.score;
+        }
+    }
+
+    function gameOver() {
+        const scoreboard = document.getElementsByClassName('scoreboard')[0];
+        return scoreboard.classList.contains('win') || scoreboard.classList.contains('lose');
+    }
+    
+    document.addEventListener('contextmenu', function(event) {
+        event.preventDefault();
+    });
+    window.onload = init;
+
+</script>
+</body>
+</html>

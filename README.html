@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Problem Set 4</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="problem-set-4">Problem Set 4</h1>
+<p>In this lab, you will create a version of <a href="https://minesweeperonline.com">MineSweeper</a> that connects to a game server.  In this version:</p>
+<ul>
+<li>the entirety of the Minesweeper logic is on a server</li>
+<li>the user can select a space with a left-click or unmark/mark a flag with by holding left-click</li>
+</ul>
+<h2 id="your-goal">Your Goal</h2>
+<p>Alter the client-side MineSweeper class to correctly connect to the server and update. You <strong>will</strong> need to alter other code, but you should be very careful about doing so.</p>
+<p><strong>TEST OFTEN!</strong></p>
+<h2 id="what-you-submit">What You Submit</h2>
+<p>Only submit the <strong>minesweeper.html</strong> file.</p>
+<p>If you complete any additional tiers, submit a .zip file of the entire folder (<strong>WITHOUT the <strong>node_modules</strong> folder</strong>)</p>
+<h2 id="setup">Setup</h2>
+<ol>
+<li>Download an unzip the server project provided</li>
+<li>Install dependancies with <code>npm install</code></li>
+<li>Complete <code>minesweeper.html</code> so that a user can create and play a game of MineSweeper.  Other users must be able to observe/play a currently running game (using SSE updates!)</li>
+</ol>
+<h2 id="implementation-details">Implementation Details</h2>
+<ul>
+<li>Currently, all people can play and observe every game</li>
+<li>Client <strong>(you do this!)</strong>
+<ul>
+<li>Allow the user to pick a space or place a flag</li>
+<li>Update the score and time correctly</li>
+<li>Update the board when an SSE event happens</li>
+</ul>
+</li>
+<li>Server <strong>(this exists already!)</strong>
+<ul>
+<li>GET /minesweeper - the introduction page to the game</li>
+<li>GET /minesweeper/game - creates or observes a game with the following URL-encoded parameters
+<ul>
+<li>gameid (optional) - the id of the game to observe; if this is undefined then a new game is created</li>
+<li>name (optional; defaults to Anonymous) - the name of the player</li>
+<li>rows (optional; defaults to 10) - number of rows in the game; only used when creating a new game</li>
+<li>cols (optional; defaults to 10) - number columns in the game; only used when creating a new game</li>
+<li>difficulty (optional; defaults to med) - the difficulty of the game (easy/med/hard); only used when creating a new game</li>
+</ul>
+</li>
+<li>POST /minesweeeper/move - make a move with JSON-encoded data
+<ul>
+<li>gameid - the id of the game</li>
+<li>row - the row of the move</li>
+<li>col - the column of the move</li>
+<li>flag - true to toggle a flag; false otherwise</li>
+</ul>
+</li>
+<li>GET /minesweeper/info - provide information about the current game using URL-encoded data
+<ul>
+<li>gameid - the id of the game to query</li>
+<li>action - the action to perform
+<ul>
+<li>board - the public state of the board as a dictionary (row,col) = value where value is one of [0,8], 'M' for a mine, 'F' for a flag, or -1 if covered.  gameOver indicates win (positive), loss (negative), or neither (0)</li>
+<li>probe - check one space at (<strong>row</strong>,<strong>col</strong>)</li>
+<li>score - the current score</li>
+<li>size - the size of the board in the form of [<strong>#rows</strong>,<strong>#cols</strong>]</li>
+<li>time - the current elapsed time</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>GET /minesweeper/events - set up a SSE stream for push updates.  Each update is a JSON-encoded string of gameid and action (currently only 'update')</li>
+</ul>
+</li>
+</ul>
+<h2 id="rubric-base-tier">Rubric (Base Tier)</h2>
+<ul>
+<li>Class/IDs are well named and make sense.</li>
+<li>Internal CSS - includes theming information and styles common to the landing and contact pages.
+<ul>
+<li>Use of CSS variables to control grid layout.</li>
+<li>Proper use of the Grid Layout.</li>
+<li>Theming and colors are <strong>not</strong> atrocious.</li>
+</ul>
+</li>
+<li>Internal JavaScript
+<ul>
+<li>Proper separation of functions, responsibilities, and logic.  The MineSweeper logic must be removed from the client code.</li>
+<li>Correct use of event handlers.</li>
+<li>Correct use of fetch to make a move and update the board</li>
+<li>Correct use of EventSource to connect and respond to the update stream</li>
+<li>Grid is dynamically allocated during start.</li>
+<li>Win/Lose is properly indicated.</li>
+</ul>
+</li>
+</ul>
+<h2 id="additional-tiers">Additional Tiers</h2>
+<ul>
+<li>Edit the MineSweeper logic to implement the difficulty
+<ul>
+<li>easy: each space has 10% of being a mine</li>
+<li>med: 20% chance</li>
+<li>hard: 30% chance</li>
+</ul>
+</li>
+<li>Implement correctly handling the Player's name:
+<ul>
+<li>Edit <strong>server.js</strong> to handle the name on creation</li>
+<li>Edit <strong>server.js</strong> to add the &quot;name&quot; action to the <strong>probe</strong> route</li>
+<li>Edit <strong>minesweeper.html</strong> to properly display the name</li>
+</ul>
+</li>
+<li>Edit the server so that there are two &quot;modes&quot;:
+<ul>
+<li>Player - the user creates and plays the game; the player can make moves</li>
+<li>Observer - all other people; these users observe other players' boards</li>
+</ul>
+</li>
+</ul>
+
+            
+            
+        </body>
+        </html>
